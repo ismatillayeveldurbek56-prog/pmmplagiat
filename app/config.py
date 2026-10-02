@@ -84,8 +84,12 @@ class Settings(BaseSettings):
 
     @property
     def verification_base_url(self) -> str:
+        # Verification URLs must always be absolute HTTPS links in certificates.
         if self.public_base_url:
-            return self.public_base_url
+            domain = self.public_base_url.strip().rstrip("/")
+            if domain.startswith(("http://", "https://")):
+                return domain
+            return f"https://{domain}"
         if self.railway_public_domain:
             domain = self.railway_public_domain.strip().rstrip("/")
             if domain.startswith(("http://", "https://")):
