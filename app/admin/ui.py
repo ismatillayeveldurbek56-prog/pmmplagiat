@@ -64,6 +64,7 @@ def page(
         ("scans", "Tekshiruvlar", "/admin/scans", "scans"),
         ("certificates", "Sertifikatlar", "/admin/certificates", "certificates"),
         ("broadcast", "Xabar yuborish", "/admin/broadcast", "broadcast"),
+        ("feedback", "Muammo va takliflar", "/admin/feedback", "feedback"),
         ("reports", "Hisobotlar", "/admin/reports", "reports"),
         ("audit", "Audit jurnali", "/admin/audit", "audit"),
         ("admins", "Administratorlar", "/admin/admins", "admins"),
