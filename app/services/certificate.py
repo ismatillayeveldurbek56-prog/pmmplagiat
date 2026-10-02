@@ -338,8 +338,7 @@ def build_certificate_pdf(certificate: Certificate, verify_url: str) -> bytes:
         Paragraph("HUJJAT TEKSHIRUVI SERTIFIKATI", title),
         Paragraph(
             f"Mazkur sertifikat quyida ko‘rsatilgan hujjat {BRAND_NAME}ning akademik "
-            "tekshiruv tizimida internet, "
-            "akademik va ichki hujjatlar bazasi bo‘yicha tekshiruvdan o‘tkazilganini "
+            "tekshiruv tizimida internet va akademik manbalar bo‘yicha tekshiruvdan o‘tkazilganini "
             "hamda natijalar elektron qayd etilganini tasdiqlaydi.",
             subtitle,
         ),
@@ -421,6 +420,8 @@ def build_certificate_pdf(certificate: Certificate, verify_url: str) -> bytes:
                     "QR kod sertifikatning jonli verifikatsiya sahifasini ochadi. "
                     "Sahifadagi ID, hujjat xeshi va natijalar ushbu PDF bilan mos "
                     "bo‘lishi kerak.<br/><br/>"
+                    f'<link href="{html_escape(verify_url, quote=True)}" color="#0B63CE">'
+                    "Verifikatsiya sahifasini ochish</link><br/>"
                     f"<font size='6'>{html_escape(verify_url)}</font>",
                     body,
                 ),
@@ -514,15 +515,8 @@ async def get_or_create_certificate(
                 recipient_name = " ".join(
                     item.strip() for item in (user.first_name, user.last_name or "") if item.strip()
                 )
-            multi_source = _multi_source_snapshot(external)
-            similarity = float(
-                multi_source.get("combined_similarity", external.internet_similarity)
-            )
-            originality = float(
-                multi_source.get("combined_originality", external.internet_originality)
-            )
-            internal_sources = multi_source.get("internal_sources")
-            internal_count = len(internal_sources) if isinstance(internal_sources, list) else 0
+            similarity = float(external.internet_similarity)
+            originality = float(external.internet_originality)
             internet_count = _source_count(external.internet_sources_json)
             certificate = Certificate(
                 submission_id=submission.id,
@@ -535,8 +529,8 @@ async def get_or_create_certificate(
                 word_count=submission.word_count,
                 similarity_score=similarity,
                 originality_score=originality,
-                source_count=internet_count + internal_count,
-                provider="Quetext DeepSearch + Qashqadaryo PMM ichki bazasi",
+                source_count=internet_count,
+                provider="Quetext DeepSearch",
                 ai_style_score=external.ai_style_score,
                 issued_at=datetime.now(UTC),
             )
