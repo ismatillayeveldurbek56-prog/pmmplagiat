@@ -31,6 +31,7 @@ from app.models import (
     BroadcastLog,
     Certificate,
     ExternalScan,
+    FeedbackMessage,
     PaymentOrder,
     Submission,
     Tariff,
@@ -602,6 +603,110 @@ def build_admin_router(
             session.add(BroadcastLog(admin_username=identity.username, message_text=message, audience=audience, total_count=len(recipients), sent_count=sent, failed_count=failed))
             await _audit(session, request, identity, "broadcast", "users", audience, f"total={len(recipients)}; sent={sent}; failed={failed}"); await session.commit()
         return _go("/admin/broadcast", f"Xabar yuborildi: {sent} ta. Xato: {failed} ta.")
+
+    @router.get("/admin/feedback", response_class=HTMLResponse)
+    async def feedback_page(
+        request: Request,
+        status: str = "",
+        page_no: int = Query(1, alias="page", ge=1),
+    ) -> HTMLResponse:
+        identity = _admin(request, settings, "feedback")
+        conditions = []
+        if status:
+            conditions.append(FeedbackMessage.status == status)
+        async with session_maker() as session:
+            total = await session.scalar(
+                select(func.count(FeedbackMessage.id)).where(*conditions)
+            ) or 0
+            rows = (
+                await session.execute(
+                    select(FeedbackMessage, User)
+                    .join(User, User.id == FeedbackMessage.user_id)
+                    .where(*conditions)
+                    .order_by(FeedbackMessage.created_at.desc())
+                    .offset((page_no - 1) * PER_PAGE)
+                    .limit(PER_PAGE)
+                )
+            ).all()
+        feedback_rows = []
+        for item, user in rows:
+            display_name = " ".join(
+                part for part in (user.first_name, user.last_name or "") if part
+            ).strip() or "Noma’lum"
+            next_status = "new" if item.status == "resolved" else "resolved"
+            action_label = "Qayta ochish" if item.status == "resolved" else "Ko‘rib chiqildi"
+            action_class = "secondary" if item.status == "resolved" else ""
+            action = (
+                f"<form class='inline' method='post' action='/admin/feedback/{item.id}/status'>"
+                f"{csrf_field(identity)}<input type='hidden' name='status' value='{next_status}'>"
+                f"<button class='small {action_class}'>{action_label}</button></form>"
+            )
+            feedback_rows.append(
+                f"<tr><td><code>#{item.id}</code><br><span class='muted'>"
+                f"{item.created_at:%d.%m.%Y %H:%M}</span></td>"
+                f"<td><b>{escape(display_name)}</b><br><span class='muted'>"
+                f"{user.telegram_id}</span></td>"
+                f"<td>{badge(item.status)}</td>"
+                f"<td><div style='white-space:pre-wrap;min-width:360px;max-width:680px'>"
+                f"{escape(item.message)}</div></td><td>{action}</td></tr>"
+            )
+        table_rows = "".join(feedback_rows) or (
+            '<tr><td colspan="5" class="empty">Hozircha muammo yoki takliflar yo‘q</td></tr>'
+        )
+        status_options = "".join(
+            f"<option value='{value}' {'selected' if status == value else ''}>{label}</option>"
+            for value, label in (
+                ("", "Barcha xabarlar"),
+                ("new", "Yangi"),
+                ("resolved", "Ko‘rib chiqilgan"),
+            )
+        )
+        body = (
+            _message(request)
+            + f"<div class='card'><form class='toolbar' method='get'>"
+            f"<select name='status'>{status_options}</select><button>Filtrlash</button>"
+            f"<a class='btn secondary' href='/admin/feedback'>Tozalash</a></form>"
+            f"<div class='table-wrap'><table><thead><tr><th>ID / vaqt</th>"
+            f"<th>Foydalanuvchi</th><th>Holat</th><th>Xabar</th><th>Amal</th></tr></thead>"
+            f"<tbody>{table_rows}</tbody></table></div>"
+            f"{pagination('/admin/feedback', page_no, total, PER_PAGE, status=status)}</div>"
+        )
+        return HTMLResponse(
+            page(
+                title="Muammo va takliflar",
+                subtitle=f"Jami {number(total)} ta foydalanuvchi xabari",
+                body=body,
+                identity=identity,
+                active="feedback",
+            )
+        )
+
+    @router.post("/admin/feedback/{feedback_id}/status")
+    async def feedback_status(feedback_id: int, request: Request) -> RedirectResponse:
+        identity = _admin(request, settings, "feedback")
+        form = await parse_form(request)
+        verify_csrf(identity, form)
+        next_status = form.get("status", "resolved")
+        if next_status not in {"new", "resolved"}:
+            raise HTTPException(400, "Holat noto‘g‘ri.")
+        async with session_maker() as session:
+            item = await session.get(FeedbackMessage, feedback_id)
+            if item is None:
+                raise HTTPException(404)
+            item.status = next_status
+            item.handled_by = identity.username if next_status == "resolved" else None
+            item.handled_at = datetime.now(UTC) if next_status == "resolved" else None
+            await _audit(
+                session,
+                request,
+                identity,
+                "feedback_status",
+                "feedback",
+                str(feedback_id),
+                next_status,
+            )
+            await session.commit()
+        return _go("/admin/feedback", "Xabar holati yangilandi.")
 
     @router.get("/admin/reports", response_class=HTMLResponse)
     async def reports_page(request: Request) -> HTMLResponse:
