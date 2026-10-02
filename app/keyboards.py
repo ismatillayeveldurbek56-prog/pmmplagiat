@@ -13,6 +13,7 @@ def main_menu() -> ReplyKeyboardMarkup:
                 KeyboardButton(text="💳 To‘lov qilish"),
                 KeyboardButton(text="ℹ️ Yordam"),
             ],
+            [KeyboardButton(text="💬 Muammo va takliflar")],
         ],
         resize_keyboard=True,
         input_field_placeholder="PDF, DOCX yoki TXT fayl yuboring",
