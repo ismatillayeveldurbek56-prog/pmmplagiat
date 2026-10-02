@@ -250,7 +250,7 @@ def build_report(filename: str, word_count: int, checked_at: datetime | None = N
     story.append(Paragraph("3. Ekspert tavsiyalari", styles["heading"]))
     for number, recommendation in enumerate(conclusion.recommendations, start=1): story.append(Paragraph(f"<b>{number}.</b> {escape(recommendation)}", styles["body"]))
     if authorship_questions:
-        story.append(Paragraph("5. Mualliflikni tekshirish savollari", styles["heading"]))
+        story.append(Paragraph("4. Mualliflikni tekshirish savollari", styles["heading"]))
         question_lines = "<br/>".join(f"<b>{number}.</b> {escape(question)}" for number, question in enumerate(authorship_questions[:3], start=1))
         story.append(Paragraph(question_lines, styles["small"]))
     document.build(story, onFirstPage=_page_decorator(regular, bold, report_id), onLaterPages=_page_decorator(regular, bold, report_id))
