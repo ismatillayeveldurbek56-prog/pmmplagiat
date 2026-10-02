@@ -368,17 +368,17 @@ def build_report(
         bottomMargin=16 * mm,
         title=f"{BRAND_NAME} tekshiruv hisoboti — {filename}",
         author=BRAND_NAME,
-        subject="Internet va akademik manbalar bo‘yicha o‘xshashlik hisoboti",
+        subject="Internet va akademik manbalar bo'yicha o'xshashlik hisoboti",
     )
 
     detected_language = ai_assessment.language if ai_assessment else "unknown"
     scan_mode = "QUETEXT DEEPSEARCH"
     story: list[object] = [
         Spacer(1, 0.8 * mm),
-        Paragraph("TO‘LIQ TEKSHIRUV HISOBOTI", styles["title"]),
+        Paragraph("TO'LIQ TEKSHIRUV HISOBOTI", styles["title"]),
         Paragraph(
-            "Internet va akademik manbalar bo‘yicha o‘xshashlik, mos fragmentlar "
-            "va AI indikatori bo‘yicha elektron qayd",
+            "Internet va akademik manbalar bo'yicha o'xshashlik, mos fragmentlar "
+            "va AI indikatori bo'yicha elektron qayd",
             styles["subtitle"],
         ),
     ]
@@ -390,10 +390,10 @@ def build_report(
                 Paragraph(escape(filename), styles["table_bold"]),
             ],
             [
-                Paragraph("TEKSHIRUV MA’LUMOTI", styles["small"]),
+                Paragraph("TEKSHIRUV MA'LUMOTI", styles["small"]),
                 Paragraph(
                     checked_at.strftime("%d.%m.%Y • %H:%M")
-                    + f"  •  {word_count:,} so‘z  •  "
+                    + f"  •  {word_count:,} so'z  •  "
                     + escape(language_name(detected_language)),
                     styles["table"],
                 ),
@@ -421,6 +421,9 @@ def build_report(
     )
     story.extend([metadata, Spacer(1, 2 * mm)])
 
+    # Handle zero public sources case
+    is_zero_sources = len(internet_result.sources) == 0 and float(internet_result.similarity or 0) == 0.0
+    
     banner_background = PALE_TURQUOISE
     banner_color = GREEN
     banner = Table(
@@ -455,40 +458,85 @@ def build_report(
     )
     story.extend([banner, Spacer(1, 2 * mm)])
 
+    # Add limitation note for zero sources case
+    if is_zero_sources:
+        story.append(
+            Paragraph(
+                "<b>⚠️ Tekshiruv cheklovasi:</b> Ushbu tekshiruv faqat ochiq internet manbalari "
+                "bo'yicha amalga oshirildi. Nolga teng natija mutlaq originallikning dalili emas. "
+                "Xususiy yoki to'loliktaloq manbalardagi o'xshashliklarni alohida usullarda tekshirish talab qilinishi mumkin.",
+                styles["body"],
+            )
+        )
+        story.append(Spacer(1, 1 * mm))
+
     ai_value = (
         "MAVJUD EMAS"
         if not ai_assessment or ai_assessment.score is None
         else f"{ai_assessment.score:.1f}%"
     )
     card_width = 56 * mm
-    metrics = Table(
-        [
+    
+    # For zero sources, show metric label differently
+    if is_zero_sources:
+        metrics = Table(
             [
-                _metric_card(
-                    f"{multi_source_result.combined_originality:.2f}%",
-                    "UMUMIY ORIGINALLIK",
-                    styles,
-                    PAPER,
-                    card_width,
-                ),
-                _metric_card(
-                    f"{multi_source_result.combined_similarity:.2f}%",
-                    "UMUMIY O‘XSHASHLIK",
-                    styles,
-                    PAPER,
-                    card_width,
-                ),
-                _metric_card(
-                    f"{multi_source_result.internet_similarity:.2f}%",
-                    "INTERNET / AKADEMIK",
-                    styles,
-                    PAPER,
-                    card_width,
-                ),
-            ]
-        ],
-        colWidths=[58 * mm] * 3,
-    )
+                [
+                    _metric_card(
+                        "TOPILGAN OCHIQ MANBA: 0 ta",
+                        "INTERNET MANBALARI",
+                        styles,
+                        PAPER,
+                        card_width,
+                    ),
+                    _metric_card(
+                        f"{multi_source_result.combined_originality:.2f}%",
+                        "UMUMIY ORIGINALLIK",
+                        styles,
+                        PAPER,
+                        card_width,
+                    ),
+                    _metric_card(
+                        f"{multi_source_result.combined_similarity:.2f}%",
+                        "UMUMIY O'XSHASHLIK",
+                        styles,
+                        PAPER,
+                        card_width,
+                    ),
+                ]
+            ],
+            colWidths=[58 * mm] * 3,
+        )
+    else:
+        metrics = Table(
+            [
+                [
+                    _metric_card(
+                        f"{multi_source_result.combined_originality:.2f}%",
+                        "UMUMIY ORIGINALLIK",
+                        styles,
+                        PAPER,
+                        card_width,
+                    ),
+                    _metric_card(
+                        f"{multi_source_result.combined_similarity:.2f}%",
+                        "UMUMIY O'XSHASHLIK",
+                        styles,
+                        PAPER,
+                        card_width,
+                    ),
+                    _metric_card(
+                        f"{multi_source_result.internet_similarity:.2f}%",
+                        "INTERNET / AKADEMIK",
+                        styles,
+                        PAPER,
+                        card_width,
+                    ),
+                ]
+            ],
+            colWidths=[58 * mm] * 3,
+        )
+    
     metrics.setStyle(
         TableStyle(
             [
@@ -507,7 +555,7 @@ def build_report(
                 f"AI indikatori: <b>{escape(ai_value)}</b>",
                 styles["small"],
             ),
-            Paragraph("1. Internet manbalari bo‘yicha natija", styles["heading"]),
+            Paragraph("1. Internet manbalari bo'yicha natija", styles["heading"]),
             Paragraph(
                 f"Quetext DeepSearch tashqi skani yakunlandi. {len(internet_result.sources)} ta "
                 f"manba qaytdi. Dalil darajasi: "
@@ -533,7 +581,7 @@ def build_report(
                     f"<link href={quoteattr(source.url)} color='#2563EB'>{title}</link>"
                     f"<br/><font size='6' color='#64748B'>{escape(source.url[:140])}</font>"
                 )
-            similarity_text = f"{source.matched_words} so‘z"
+            similarity_text = f"{source.matched_words} so'z"
             if source.similarity is not None:
                 similarity_text += f"<br/><b>{source.similarity:.2f}%</b>"
             snippet_chunks = _split_table_fragment(
@@ -585,12 +633,12 @@ def build_report(
             )
         )
 
-    story.append(Paragraph("2. AI yordamida yozilgan matn indikatori", styles["heading"]))
+    story.append(Paragraph("2. Stilistik tahlil (AI indikatori)", styles["heading"]))
     if ai_assessment is None:
         story.append(
             Paragraph(
                 "AI tahlili ushbu tekshiruvda bajarilmadi. Plagiat natijasi AI tahlili "
-                "o‘rnini bosmaydi.",
+                "o'rnini bosmaydi.",
                 styles["body"],
             )
         )
@@ -642,8 +690,26 @@ def build_report(
     for number, recommendation in enumerate(conclusion.recommendations, start=1):
         story.append(Paragraph(f"<b>{number}.</b> {escape(recommendation)}", styles["body"]))
 
+    # Add interpretation guide section
+    story.append(Paragraph("4. Natijani to'g'ri talqin qilish", styles["heading"]))
+    story.append(
+        Paragraph(
+            "Plagiat tekshiruv hisoboti <b>faqat informatif dalil</b>dir. "
+            "Yakuniy qaror qabul qilishdagi asosiy faktorlar:",
+            styles["body"],
+        )
+    )
+    interpretation_items = [
+        "Hujjatning manbalariga kirgan o'xshashlik fragmentlari.",
+        "Manbalarning nisbiy ahamiyati va hujjatdagi ularning joylanishi.",
+        "Iqtibos qilish va havola berish qoidalarining bajarilishi.",
+        "Muellifning original hissasi va sheriklik darajasi.",
+    ]
+    for item in interpretation_items:
+        story.append(Paragraph(f"• {escape(item)}", styles["body"]))
+
     if authorship_questions:
-        story.append(Paragraph("4. Mualliflikni tekshirish savollari", styles["heading"]))
+        story.append(Paragraph("5. Mualliflikni tekshirish savollari", styles["heading"]))
         question_lines = "<br/>".join(
             f"<b>{number}.</b> {escape(question)}"
             for number, question in enumerate(authorship_questions[:3], start=1)
@@ -658,3 +724,4 @@ def build_report(
     decorate = _page_decorator(regular, bold, report_id)
     document.build(story, onFirstPage=decorate, onLaterPages=decorate)
     return buffer.getvalue()
+

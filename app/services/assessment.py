@@ -16,12 +16,12 @@ class ProfessionalConclusion:
 
 def _similarity_level(value: float) -> tuple[str, str]:
     if value < 10:
-        return "past", "Internet manbalari bilan o‘xshashlik past darajada."
+        return "past", "Internet manbalari bilan o'xshashlik past darajada."
     if value < 25:
-        return "o‘rta", "Ayrim o‘xshash qismlar mavjud; iqtibos va havolalarni ko‘rib chiqing."
+        return "o'rta", "Ayrim o'xshash qismlar mavjud; iqtibos va havolalarni ko'rib chiqing."
     if value < 50:
-        return "yuqori", "Sezilarli o‘xshashlik topildi; manbalar bo‘yicha tahrir zarur."
-    return "juda yuqori", "Katta hajmdagi o‘xshashlik topildi; batafsil ekspert ko‘rigi zarur."
+        return "yuqori", "Sezilarli o'xshashlik topildi; manbalar bo'yicha tahrir zarur."
+    return "juda yuqori", "Katta hajmdagi o'xshashlik topildi; batafsil ekspert ko'rigi zarur."
 
 
 def build_professional_conclusion(
@@ -34,6 +34,29 @@ def build_professional_conclusion(
         raise ValueError("Professional xulosa faqat yakunlangan tashqi skan uchun yaratiladi.")
 
     score = internet.similarity if overall_similarity is None else overall_similarity
+    
+    # Handle zero public sources case
+    if len(internet.sources) == 0 and score == 0.0:
+        recommendations = [
+            "Ushbu tekshiruv public internetda moslik topmaganligini ko'rsatadi.",
+            "Bu mutlaq originallik dalili emas; o'zgalarning ishlarini tanishish va citatsiya qilish zarur.",
+            "Xususiy/yopiq manbalarni alohida tekshirish talab qilinishi mumkin.",
+            "Yakuniy akademik qarorni inson eksperti qabul qilishi kerak.",
+        ]
+        return ProfessionalConclusion(
+            status="verified",
+            status_label="TEKSHIRUV YAKUNLANDI",
+            headline="Topilgan ochiq manba: 0 ta",
+            conclusion=(
+                "Quetext DeepSearch internet manbalari bo'yicha skan yakunlandi. "
+                "Ochiq internetda mos fragmentlar topilmadi. "
+                "Bu mutlaq originallik yo'q ekanligini isbotlamaydi; "
+                "o'zgalarning ishlarini tanishish va zarur joylarda citatsiya qilish zarur."
+            ),
+            evidence_level="Quetext DeepSearch dalillari (0 ta manba)",
+            recommendations=recommendations,
+        )
+    
     level, interpretation = _similarity_level(score)
     recommendations = [
         "Mos qismlarni asl manbalar bilan solishtiring va zarur joylarda havola kiriting."
@@ -42,17 +65,18 @@ def build_professional_conclusion(
         recommendations.insert(0, "Eng katta moslik bergan manbalardan boshlab tahrir qiling.")
     if ai and ai.score is not None and ai.score >= 20:
         recommendations.append(
-            "AI ko‘rsatkichini yakka dalil sifatida ishlatmang; mualliflik savollarini bering."
+            "AI ko'rsatkichini yakka dalil sifatida ishlatmang; mualliflik savollarini bering."
         )
     recommendations.append("Yakuniy akademik qarorni inson eksperti qabul qilishi kerak.")
     return ProfessionalConclusion(
         status="verified",
         status_label="TEKSHIRUV YAKUNLANDI",
-        headline=f"Umumiy o‘xshashlik darajasi: {level}",
+        headline=f"Umumiy o'xshashlik darajasi: {level}",
         conclusion=(
-            f"Internet va akademik veb manbalar bo‘yicha tekshiruv yakunlandi. "
-            f"Umumiy o‘xshashlik {score:.2f}% bo‘ldi. {interpretation}"
+            f"Internet va akademik veb manbalar bo'yicha tekshiruv yakunlandi. "
+            f"Umumiy o'xshashlik {score:.2f}% bo'ldi. {interpretation}"
         ),
         evidence_level="Quetext DeepSearch dalillari",
         recommendations=recommendations[:4],
     )
+
