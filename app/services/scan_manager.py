@@ -181,10 +181,6 @@ class QuetextScanManager:
                     confidence="mavjud emas",
                 )
 
-            # Internal-document comparison is intentionally disabled in the
-            # production result path. Keep the engine available for a future
-            # opt-in mode, but make Quetext the sole similarity source shown
-            # to users and used for the final score.
             internal = InternalScanResult(
                 similarity=0.0,
                 matched_words=0,
@@ -493,6 +489,17 @@ class QuetextScanManager:
             if ai_assessment.score is None
             else f"{ai_assessment.score:.2f}%"
         )
+        if internet.sources:
+            originality_line = (
+                f"🟢 Aniqlangan originallik: <b>{multi_source.combined_originality:.2f}%</b>"
+            )
+            source_summary = f"<b>Asosiy manbalar:</b>\n{sources_text}"
+        else:
+            originality_line = "📚 Topilgan ochiq manbalar: <b>0 ta</b>"
+            source_summary = (
+                "<b>Manbalar:</b> ochiq internet/akademik veb manbalarida mos fragment "
+                "topilmadi. Bu mutlaq plagiatsizlik hukmi emas."
+            )
         await self.bot.send_message(
             telegram_id,
             "✅ <b>V6 ko‘p manbali tekshiruv yakunlandi</b>\n\n"
@@ -500,10 +507,10 @@ class QuetextScanManager:
             f"🔎 Rejim: <b>Quetext DeepSearch</b>\n"
             f"🌐 Til: <b>{html.escape(language_name(ai_assessment.language))}</b>\n"
             f"🌐 Internet o‘xshashligi: <b>{multi_source.internet_similarity:.2f}%</b>\n"
-            f"🟢 Umumiy originallik: <b>{multi_source.combined_originality:.2f}%</b>\n"
+            f"{originality_line}\n"
             f"🧠 AIga o‘xshash matn: <b>{ai_score}</b>\n"
             f"ℹ️ {html.escape(ai_assessment.verdict)}\n\n"
-            f"<b>Asosiy manbalar:</b>\n{sources_text}\n\n"
+            f"{source_summary}\n\n"
             "⚠️ AI ko‘rsatkichi mualliflikni isbotlamaydi; yakuniy qaror "
             "manbalar va mualliflik dalillari bilan birga qabul qilinadi."
             f"{report_warning}",
