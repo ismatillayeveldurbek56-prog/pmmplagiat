@@ -489,7 +489,7 @@ class QuetextScanManager:
                 label = title
             fragment_count = len(group)
             matched_words = sum(item.matched_words for item in group)
-            source_lines.append(f"• {label} - {fragment_count} fragment, {matched_words} mos so‘z")
+            source_lines.append(f"• {label} - {fragment_count} mos parcha, {matched_words} mos so‘z")
         sources_text = "\n".join(source_lines) or "Manba topilmadi."
         ai_score = (
             "ishonchli baho mavjud emas"
@@ -502,12 +502,12 @@ class QuetextScanManager:
             )
             source_summary = (
                 f"<b>Asosiy manbalar:</b> {len(grouped_sources)} ta noyob sahifa, "
-                f"{len(internet.sources)} ta fragment\n{sources_text}"
+                f"{len(internet.sources)} ta mos parcha\n{sources_text}"
             )
         else:
             originality_line = "📚 Topilgan ochiq manbalar: <b>0 ta</b>"
             source_summary = (
-                "<b>Manbalar:</b> ochiq internet/akademik veb manbalarida mos fragment "
+                "<b>Manbalar:</b> ochiq internet/akademik veb manbalarida mos parcha "
                 "topilmadi. Bu mutlaq plagiatsizlik hukmi emas."
             )
         await self.bot.send_message(
