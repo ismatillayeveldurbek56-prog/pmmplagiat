@@ -243,3 +243,23 @@ class Certificate(Base):
     ai_style_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+class FeedbackMessage(Base):
+    """User-reported problems and suggestions submitted from Telegram."""
+
+    __tablename__ = "feedback_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    kind: Mapped[str] = mapped_column(String(32), default="feedback", index=True)
+    message: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(24), default="new", index=True)
+    admin_note: Mapped[str] = mapped_column(Text, default="")
+    handled_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    handled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
