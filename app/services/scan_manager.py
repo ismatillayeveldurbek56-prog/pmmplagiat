@@ -474,15 +474,22 @@ class QuetextScanManager:
                 caption="📊 Qashqadaryo PMM yakuniy professional tekshiruv hisoboti",
             )
 
+        grouped_sources: dict[str, list[InternetSource]] = {}
+        for source in internet.sources:
+            key = (source.url or source.title or "manba").strip().rstrip("/").casefold()
+            grouped_sources.setdefault(key, []).append(source)
         source_lines = []
-        for source in internet.sources[:3]:
+        for group in list(grouped_sources.values())[:3]:
+            source = group[0]
             title = html.escape(source.title)
             if source.url:
                 url = html.escape(source.url, quote=True)
                 label = f'<a href="{url}">{title}</a>'
             else:
                 label = title
-            source_lines.append(f"• {label} - {source.matched_words} mos so‘z")
+            fragment_count = len(group)
+            matched_words = sum(item.matched_words for item in group)
+            source_lines.append(f"• {label} - {fragment_count} fragment, {matched_words} mos so‘z")
         sources_text = "\n".join(source_lines) or "Manba topilmadi."
         ai_score = (
             "ishonchli baho mavjud emas"
@@ -493,7 +500,10 @@ class QuetextScanManager:
             originality_line = (
                 f"🟢 Aniqlangan originallik: <b>{multi_source.combined_originality:.2f}%</b>"
             )
-            source_summary = f"<b>Asosiy manbalar:</b>\n{sources_text}"
+            source_summary = (
+                f"<b>Asosiy manbalar:</b> {len(grouped_sources)} ta noyob sahifa, "
+                f"{len(internet.sources)} ta fragment\n{sources_text}"
+            )
         else:
             originality_line = "📚 Topilgan ochiq manbalar: <b>0 ta</b>"
             source_summary = (
