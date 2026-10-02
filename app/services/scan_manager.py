@@ -158,7 +158,7 @@ class QuetextScanManager:
                     verdict="Quetext AI tahlili yakunlanmadi",
                     reasons=[
                         getattr(external_ai, "public_message", str(external_ai)),
-                        "Plagiat natijasi AI tahlilining o‘rnini bosmaydi.",
+                        "Plagiat natijasi AI tahlilining o'rnini bosmaydi.",
                     ],
                     supported=False,
                     language=language,
@@ -172,7 +172,7 @@ class QuetextScanManager:
                     reasons=[
                         str(
                             provider_data.get("ai_submission_error")
-                            or "AI so‘rovi Quetext tomonidan qabul qilinmadi."
+                            or "AI so'rovi Quetext tomonidan qabul qilinmadi."
                         )
                     ],
                     supported=False,
@@ -305,8 +305,8 @@ class QuetextScanManager:
             provider="Quetext AI Detector",
             confidence=confidence,
             disclaimer=(
-                "Quetext AI ko‘rsatkichi ehtimollik bahosidir; u mualliflik yoki "
-                "qoidabuzarlikni yakka o‘zi isbotlamaydi."
+                "Quetext AI ko'rsatkichi ehtimollik bahosidir; u mualliflik yoki "
+                "qoidabuzarlikni yakka o'zi isbotlamaydi."
             ),
         )
 
@@ -478,35 +478,66 @@ class QuetextScanManager:
                 caption="📊 Qashqadaryo PMM yakuniy professional tekshiruv hisoboti",
             )
 
-        source_lines = []
-        for source in internet.sources[:3]:
-            title = html.escape(source.title)
-            if source.url:
-                url = html.escape(source.url, quote=True)
-                label = f'<a href="{url}">{title}</a>'
-            else:
-                label = title
-            source_lines.append(f"• {label} - {source.matched_words} mos so‘z")
-        sources_text = "\n".join(source_lines) or "Manba topilmadi."
-        ai_score = (
-            "ishonchli baho mavjud emas"
-            if ai_assessment.score is None
-            else f"{ai_assessment.score:.2f}%"
-        )
+        # Handle zero sources case
+        is_zero_sources = len(sources) == 0 and float(internet.similarity or 0) == 0.0
+        
+        if is_zero_sources:
+            # Zero sources message
+            summary = (
+                "✅ <b>V6 ko'p manbali tekshiruv yakunlandi</b>\n\n"
+                f"📄 <code>{html.escape(submission.filename)}</code>\n"
+                f"🔎 Rejim: <b>Quetext DeepSearch</b>\n"
+                f"🌐 Til: <b>{html.escape(language_name(ai_assessment.language))}</b>\n\n"
+                "<b>🔍 Tekshiruv Natijasi:</b>\n"
+                "Topilgan ochiq manbalar: <b>0 ta</b>\n\n"
+                "<b>⚠️ Chegaralash:</b>\n"
+                "Bu tekshiruv faqat <b>ochiq</b> internet manbalari bo'yicha amalga oshirildi. "
+                "Nolga teng natija mutlaq originallikning dalili <b>emas</b>. Xususiy yoki "
+                "to'loliktaloq manbalar (jismoniy kutubxonalar, to'lovli bazalar, "
+                "korxona ma'lumotlari) alohida tekshirish usullari bilan tahlil qilinishi mumkin.\n\n"
+                f"🧠 AIga o'xshash matn: <b>"
+                + ("ishonchli baho mavjud emas" if ai_assessment.score is None else f"{ai_assessment.score:.2f}%")
+                + f"</b>\n"
+                f"ℹ️ {html.escape(ai_assessment.verdict)}\n\n"
+                "⚠️ AI ko'rsatkichi mualliflikni isbotlamaydi; yakuniy qaror "
+                "manbalar, mualliflik dalillari va ekspert xulosalari bilan birga qabul qilinadi."
+                f"{report_warning}"
+            )
+        else:
+            # Normal message with sources
+            source_lines = []
+            for source in internet.sources[:3]:
+                title = html.escape(source.title)
+                if source.url:
+                    url = html.escape(source.url, quote=True)
+                    label = f'<a href="{url}">{title}</a>'
+                else:
+                    label = title
+                source_lines.append(f"• {label} - {source.matched_words} mos so'z")
+            sources_text = "\n".join(source_lines) or "Manba topilmadi."
+            ai_score = (
+                "ishonchli baho mavjud emas"
+                if ai_assessment.score is None
+                else f"{ai_assessment.score:.2f}%"
+            )
+            summary = (
+                "✅ <b>V6 ko'p manbali tekshiruv yakunlandi</b>\n\n"
+                f"📄 <code>{html.escape(submission.filename)}</code>\n"
+                f"🔎 Rejim: <b>Quetext DeepSearch</b>\n"
+                f"🌐 Til: <b>{html.escape(language_name(ai_assessment.language))}</b>\n"
+                f"🌐 Internet o'xshashligi: <b>{multi_source.internet_similarity:.2f}%</b>\n"
+                f"🟢 Umumiy originallik: <b>{multi_source.combined_originality:.2f}%</b>\n"
+                f"🧠 AIga o'xshash matn: <b>{ai_score}</b>\n"
+                f"ℹ️ {html.escape(ai_assessment.verdict)}\n\n"
+                f"<b>Asosiy manbalar:</b>\n{sources_text}\n\n"
+                "⚠️ AI ko'rsatkichi mualliflikni isbotlamaydi; yakuniy qaror "
+                "manbalar va mualliflik dalillari bilan birga qabul qilinadi."
+                f"{report_warning}"
+            )
+        
         await self.bot.send_message(
             telegram_id,
-            "✅ <b>V6 ko‘p manbali tekshiruv yakunlandi</b>\n\n"
-            f"📄 <code>{html.escape(submission.filename)}</code>\n"
-            f"🔎 Rejim: <b>Quetext DeepSearch</b>\n"
-            f"🌐 Til: <b>{html.escape(language_name(ai_assessment.language))}</b>\n"
-            f"🌐 Internet o‘xshashligi: <b>{multi_source.internet_similarity:.2f}%</b>\n"
-            f"🟢 Umumiy originallik: <b>{multi_source.combined_originality:.2f}%</b>\n"
-            f"🧠 AIga o‘xshash matn: <b>{ai_score}</b>\n"
-            f"ℹ️ {html.escape(ai_assessment.verdict)}\n\n"
-            f"<b>Asosiy manbalar:</b>\n{sources_text}\n\n"
-            "⚠️ AI ko‘rsatkichi mualliflikni isbotlamaydi; yakuniy qaror "
-            "manbalar va mualliflik dalillari bilan birga qabul qilinadi."
-            f"{report_warning}",
+            summary,
             disable_web_page_preview=True,
         )
 
@@ -523,3 +554,4 @@ class QuetextScanManager:
             f"Sabab: {html.escape(message)}\n\n"
             "Yakuniy plagiat natijasi olinmagani uchun PDF hisobot yaratilmadi.",
         )
+

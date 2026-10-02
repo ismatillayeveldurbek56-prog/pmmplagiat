@@ -1,4 +1,5 @@
 import logging
+from xml.sax.saxutils import escape
 
 from aiogram.types import BufferedInputFile
 
@@ -40,9 +41,9 @@ class CertifiedQuetextScanManager(QuetextScanManager):
                     filename=f"Qashqadaryo_PMM_Sertifikat_{certificate.certificate_number}.pdf",
                 ),
                 caption=(
-                    f"📜 <b>{BRAND_NAME} hujjat tekshiruvi sertifikati</b>\n"
-                    f"🆔 <code>{certificate.certificate_number}</code>\n"
-                    f"🔐 QR/verifikatsiya: {verify_url}"
+                    f"📜 <b>{escape(BRAND_NAME)} hujjat tekshiruvi sertifikati</b>\n"
+                    f"🆔 <code>{escape(certificate.certificate_number)}</code>\n"
+                    f"🔐 QR/verifikatsiya: {escape(verify_url)}"
                 ),
             )
         except Exception:
@@ -52,3 +53,4 @@ class CertifiedQuetextScanManager(QuetextScanManager):
                 "⚠️ Tekshiruv hisobotini oldingiz, ammo sertifikat yaratishda texnik xatolik "
                 "yuz berdi. Administrator loglarini tekshirish kerak.",
             )
+
