@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     admin_web_password: str = Field(default="", alias="ADMIN_WEB_PASSWORD")
     admin_web_secret: str = Field(default="", alias="ADMIN_WEB_SECRET")
     admin_session_hours: int = Field(default=12, alias="ADMIN_SESSION_HOURS", ge=1, le=72)
+    feedback_cooldown_minutes: int = Field(default=5, alias="FEEDBACK_COOLDOWN_MINUTES", ge=1, le=1440)
     max_file_mb: int = Field(default=20, alias="MAX_FILE_MB", ge=1, le=50)
     max_text_chars: int = Field(default=200_000, alias="MAX_TEXT_CHARS", ge=1_000, le=1_000_000)
     quetext_api_key: str | None = Field(default=None, alias="QUETEXT_API_KEY")
