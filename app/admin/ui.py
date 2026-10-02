@@ -21,6 +21,8 @@ def badge(status: str) -> str:
         "failed": "Xato",
         "active": "Faol",
         "revoked": "Bekor qilingan",
+        "new": "Yangi",
+        "resolved": "Ko‘rib chiqilgan",
     }
     css = "ok" if status in {"approved", "completed", "active"} else "bad" if status in {"rejected", "failed", "revoked"} else "warn"
     return f'<span class="badge {css}">{escape(labels.get(status, status))}</span>'
