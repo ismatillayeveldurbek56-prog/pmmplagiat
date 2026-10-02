@@ -131,7 +131,7 @@ async def feedback_message(
         f"👤 Foydalanuvchi: <b>{display_name}</b>\n"
         f"🔗 Username: {username}\n"
         f"🆔 Telegram ID: <code>{telegram_id}</code>\n\n"
-        f"📝 {text}"
+        f"📝 {escape(text)}"
     )
     for admin_id in settings.admin_id_set:
         try:
