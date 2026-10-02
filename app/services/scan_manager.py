@@ -347,7 +347,6 @@ class QuetextScanManager:
             external.ai_reasons_json = json.dumps(ai.reasons, ensure_ascii=False)
             provider_data["ai_provider"] = ai.provider
             provider_data["ai_confidence"] = ai.confidence
-            provider_data["internal_scan_status"] = "completed"
             provider_data["multi_source"] = multi_source.to_dict()
             external.provider_payload_json = json.dumps(
                 sanitize_json_value(provider_data),
