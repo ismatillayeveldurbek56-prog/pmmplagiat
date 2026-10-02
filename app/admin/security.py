@@ -29,9 +29,9 @@ ROLE_PERMISSIONS = {
     },
     "operator": {
         "dashboard", "users", "user_manage", "scans", "scan_manage",
-        "certificates", "certificate_manage", "broadcast",
+        "certificates", "certificate_manage", "broadcast", "feedback",
     },
-    "support": {"dashboard", "users", "payments", "scans", "certificates"},
+    "support": {"dashboard", "users", "payments", "scans", "certificates", "feedback"},
     "auditor": {"dashboard", "users", "payments", "scans", "certificates", "reports", "audit"},
 }
 
