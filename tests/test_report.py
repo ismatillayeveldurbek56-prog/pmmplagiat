@@ -88,3 +88,36 @@ def test_pdf_cleans_html_from_legacy_quetext_snippets() -> None:
     assert "</b>" not in text
     assert "&nbsp;" not in text
     assert "&amp;" not in text
+
+
+def test_pdf_groups_duplicate_urls_and_keeps_fragments() -> None:
+    internet = InternetScanResult(
+        similarity=4.61,
+        originality=95.39,
+        sources=[
+            InternetSource(
+                "Bir sahifa — birinchi fragment",
+                "https://example.uz/article/",
+                13,
+                introduction="Birinchi mos fragment.",
+                similarity=61.0,
+            ),
+            InternetSource(
+                "Bir sahifa — ikkinchi fragment",
+                "https://example.uz/article",
+                9,
+                introduction="Ikkinchi mos fragment.",
+                similarity=80.0,
+            ),
+        ],
+        status="completed",
+    )
+
+    report = build_report("duplicate.docx", 442, internet_result=internet)
+    text = "\n".join(page.extract_text() or "" for page in PdfReader(BytesIO(report)).pages)
+    normalized = " ".join(text.split())
+
+    assert "1 ta noyob ochiq sahifa va 2 ta mos fragment" in normalized
+    assert "Fragment 1" in normalized
+    assert "Fragment 2" in normalized
+    assert "mutlaq plagiatsiz" in normalized
