@@ -6,6 +6,7 @@ import uvicorn
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.exceptions import TelegramRetryAfter
 
 from app.branding import BOT_DESCRIPTION, BOT_SHORT_DESCRIPTION, BRAND_NAME
 from app.config import get_settings
@@ -24,6 +25,8 @@ async def configure_bot_profile(bot: Bot) -> None:
         await bot.set_my_name(name=BRAND_NAME)
         await bot.set_my_description(description=BOT_DESCRIPTION)
         await bot.set_my_short_description(short_description=BOT_SHORT_DESCRIPTION)
+    except TelegramRetryAfter as exc:
+        logger.info("Telegram profile update is rate-limited; current branding is kept (%ss).", exc.retry_after)
     except Exception:
         # A profile update must never prevent document checks from starting.
         logger.warning("Telegram bot profile branding could not be updated", exc_info=True)
