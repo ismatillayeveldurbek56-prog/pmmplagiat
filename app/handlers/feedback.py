@@ -1,4 +1,5 @@
 import math
+from html import escape
 from datetime import UTC, datetime
 
 from aiogram import Bot, F, Router
