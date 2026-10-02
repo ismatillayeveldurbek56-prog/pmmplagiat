@@ -1,0 +1,68 @@
+QASHQADARYO VILOYAT PEDAGOGIK MAHORAT MARKAZI BOTI
+GITHUB VA RAILWAYGA YUKLASH
+==================================================
+
+1. ZIP faylni oching.
+2. Papka ichidagi barcha fayl va papkalarni GitHub repository ildiziga yuklang.
+   GitHub ichida main.py, requirements.txt, Dockerfile, railway.toml va app
+   papkasi bir qatorda ko‘rinishi kerak.
+3. ZIP faylning o‘zini repository ichiga yuklamang.
+4. .env fayli, BOT_TOKEN, API kalitlari va parollarni GitHubga yuklamang.
+
+YANGILANGAN BRENDING
+--------------------
+
+- Bot nomi: Qashqadaryo viloyat pedagogik mahorat markazi
+- Logotip: app/assets/qashqadaryo_pmm_logo.png
+- Sertifikat raqami: QVPMM-YIL-...
+- PDF hisobot, sertifikat va QR-verifikatsiya sahifasi yangi brendingda ishlaydi.
+- Deploydan keyin bot nomi va tavsifi avtomatik yangilanadi.
+- Profil rasmi uchun @BotFather -> /setuserpic buyrug‘idan foydalaning va
+  app/assets/qashqadaryo_pmm_logo.png rasmini yuboring.
+
+RAILWAY VARIABLES
+-----------------
+
+BOT_TOKEN                 BotFather bergan token
+DATABASE_URL              PostgreSQL servisidan Add Reference orqali tanlanadi
+ADMIN_IDS                 Sizning raqamli Telegram ID raqamingiz
+PAYMENT_CARD_NUMBER       To‘lov qilinadigan karta raqami
+PAYMENT_CARD_OWNER        Karta egasining ism-familiyasi
+PAYMENT_REQUIRED          true
+ADMIN_WEB_USERNAME        Web-admin Owner logini
+ADMIN_WEB_PASSWORD        Kuchli va noyob parol
+ADMIN_WEB_SECRET          Kamida 32 belgili tasodifiy maxfiy qator
+ADMIN_SESSION_HOURS       12
+MAX_FILE_MB               20
+MAX_TEXT_CHARS            200000
+QUETEXT_API_KEY           Quetext Account -> API Keys bo‘limidagi kalit
+QUETEXT_POLL_SECONDS      3 (ixtiyoriy)
+QUETEXT_TIMEOUT_SECONDS   900 (ixtiyoriy)
+PUBLIC_BASE_URL           Sertifikat QR-verifikatsiya domeni (tavsiya etiladi)
+RAILWAY_PUBLIC_DOMAIN     Railway avtomatik domeni; PUBLIC_BASE_URL bo‘lmasa ishlaydi
+
+PORT qiymatini Railway avtomatik beradi. Eski COPYLEAKS_* va WEBHOOK_SECRET
+o‘zgaruvchilari ishlatilmaydi. PUBLIC_BASE_URL sertifikat QR kodi uchun kerak,
+shuning uchun mavjud bo‘lsa uni o‘chirmang.
+
+TEKSHIRISH
+----------
+
+1. Railway deploy logida Telegram polling va Uvicorn server ishga tushganini
+   tekshiring.
+2. https://SIZNING-DOMENINGIZ/health manzilini oching.
+3. Javobda status: ok va provider: Quetext ko‘rinishi kerak.
+4. Botga kamida 20 so‘zli TXT yoki DOCX yuboring.
+5. `💳 To‘lov qilish`ni bosing: bank tanlash chiqmasdan paketlar ochilishi kerak.
+6. Chek rasmini yuborib, admin hisobidan tasdiqlang.
+7. Balans qo‘shilgach hujjat yuboring; yakunda PDF va sertifikat kelishi kerak.
+8. Sertifikatdagi QR kod verifikatsiya sahifasini ochishini tekshiring.
+9. https://SIZNING-DOMEN/admin/login orqali web-admin panelga kiring.
+10. Dashboard, foydalanuvchi qidiruvi, to‘lov tasdig‘i va CSV eksportni tekshiring.
+
+MUHIM
+-----
+
+AI indikatori mualliflikni isbotlamaydi. O‘xshashlik foizi yakuniy akademik
+hukm emas; iqtiboslar, bibliografiya va kontekst inson eksperti tomonidan
+baholanadi.
