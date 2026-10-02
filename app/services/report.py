@@ -190,8 +190,8 @@ def build_report(filename: str, word_count: int, checked_at: datetime | None = N
     unique_source_count = len(source_groups)
     fragment_count = len(internet_result.sources)
     report_id = _report_id(filename, checked_at); buffer = BytesIO()
-    document = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=18 * mm, leftMargin=18 * mm, topMargin=25 * mm, bottomMargin=16 * mm, title=f"{BRAND_NAME} tekshiruv hisoboti — {filename}", author=BRAND_NAME, subject="Internet va akademik manbalar bo‘yicha o‘xshashlik hisoboti")
-    detected_language = ai_assessment.language if ai_assessment else "unknown"; scan_mode = "QUETEXT DEEPSEARCH"
+    document = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=18 * mm, leftMargin=18 * mm, topMargin=25 * mm, bottomMargin=16 * mm, title=f"{BRAND_NAME} tekshiruv hisoboti — {filename}", author=BRAND_NAME, subject="Internet, akademik va PlagAI ichki baza bo‘yicha o‘xshashlik hisoboti")
+    detected_language = ai_assessment.language if ai_assessment else "unknown"; scan_mode = "QUETEXT DEEPSEARCH + PLAGAI INTERNAL DATABASE"
     story: list[object] = [Spacer(1, 0.8 * mm), Paragraph("TO‘LIQ TEKSHIRUV HISOBOTI", styles["title"]), Paragraph("Internet va akademik manbalar bo‘yicha o‘xshashlik, mos fragmentlar va AI indikatori bo‘yicha elektron qayd", styles["subtitle"])]
     metadata = Table([
         [Paragraph("HUJJAT", styles["small"]), Paragraph(escape(filename), styles["table_bold"])],
@@ -200,17 +200,23 @@ def build_report(filename: str, word_count: int, checked_at: datetime | None = N
     ], colWidths=[38 * mm, 136 * mm])
     metadata.setStyle(TableStyle([("BACKGROUND", (0, 0), (0, -1), PALE_GOLD), ("BOX", (0, 0), (-1, -1), 0.6, BORDER), ("INNERGRID", (0, 0), (-1, -1), 0.35, BORDER), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 7), ("RIGHTPADDING", (0, 0), (-1, -1), 7), ("TOPPADDING", (0, 0), (-1, -1), 3.5), ("BOTTOMPADDING", (0, 0), (-1, -1), 3.5)]))
     story.extend([metadata, Spacer(1, 2 * mm)])
-    banner = Table([[Paragraph(f"<font color='{GREEN.hexval()}'><b>{escape(conclusion.status_label)}</b></font><br/><font size='12'><b>{escape(conclusion.headline)}</b></font>", styles["banner_title"])], [Paragraph(escape(conclusion.conclusion), styles["banner_body"])]], colWidths=[174 * mm])
+    banner_conclusion = (
+        f"{conclusion.conclusion} "
+        f"Internet va akademik manbalar: {multi_source_result.internet_similarity:.2f}%; "
+        f"PlagAI ichki hujjatlar bazasi: {multi_source_result.internal_similarity:.2f}% o‘xshashlik."
+    )
+    banner = Table([[Paragraph(f"<font color='{GREEN.hexval()}'><b>{escape(conclusion.status_label)}</b></font><br/><font size='12'><b>{escape(conclusion.headline)}</b></font>", styles["banner_title"])], [Paragraph(escape(banner_conclusion), styles["banner_body"])]], colWidths=[174 * mm])
     banner.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), PALE_TURQUOISE), ("LINEBEFORE", (0, 0), (0, -1), 2.2, GREEN), ("LINEABOVE", (0, 0), (-1, 0), 0.45, BORDER), ("LINEBELOW", (0, -1), (-1, -1), 0.45, BORDER), ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10), ("TOPPADDING", (0, 0), (-1, 0), 6), ("BOTTOMPADDING", (0, 0), (-1, 0), 2), ("TOPPADDING", (0, 1), (-1, 1), 1), ("BOTTOMPADDING", (0, 1), (-1, 1), 6)]))
     story.extend([banner, Spacer(1, 2 * mm)])
     ai_value = "MAVJUD EMAS" if not ai_assessment or ai_assessment.score is None else f"{ai_assessment.score:.1f}%"
-    card_width = 56 * mm; no_public_matches = not internet_result.sources and multi_source_result.internet_similarity <= 0
+    card_width = 42 * mm
     metric_cards = [
-        _metric_card(f"{len(internet_result.sources)} ta", "TOPILGAN OCHIQ MANBA", styles, PAPER, card_width) if no_public_matches else _metric_card(f"{multi_source_result.combined_originality:.2f}%", "ANIQLANGAN ORIGINALLIK*", styles, PAPER, card_width),
+        _metric_card(f"{multi_source_result.combined_originality:.2f}%", "UMUMIY ORIGINALLIK*", styles, PAPER, card_width),
         _metric_card(f"{multi_source_result.combined_similarity:.2f}%", "UMUMIY O‘XSHASHLIK", styles, PAPER, card_width),
         _metric_card(f"{multi_source_result.internet_similarity:.2f}%", "INTERNET / AKADEMIK", styles, PAPER, card_width),
+        _metric_card(f"{multi_source_result.internal_similarity:.2f}%", "PLAGAI ICHKI BAZA", styles, PAPER, card_width),
     ]
-    metrics = Table([metric_cards], colWidths=[58 * mm] * 3); metrics.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 1 * mm), ("RIGHTPADDING", (0, 0), (-1, -1), 1 * mm), ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
+    metrics = Table([metric_cards], colWidths=[43.5 * mm] * 4); metrics.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 1 * mm), ("RIGHTPADDING", (0, 0), (-1, -1), 1 * mm), ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
     score_note = ""
     if abs(multi_source_result.internet_similarity - multi_source_result.combined_similarity) >= 0.01:
         score_note = " Internet/akademik ko‘rsatkichi provayder skori, umumiy o‘xshashlik esa birlashtirilgan dalillar asosida hisoblanadi; shu sababli ular biroz farq qilishi mumkin."
@@ -237,9 +243,29 @@ def build_report(filename: str, word_count: int, checked_at: datetime | None = N
         story.append(source_table)
     else:
         story.append(Paragraph("Tekshiruv yakunlandi: ochiq internet/akademik veb manbalaridan mos fragment topilmadi. Ushbu natija faqat qamrab olingan ochiq manbalar doirasidagi moslikni bildiradi; uni mutlaq plagiatsiz yoki 100% original degan hukm sifatida talqin qilib bo‘lmaydi.", styles["body"]))
-    story.append(Paragraph("2. AIga o‘xshashlik indikatori (stilometrik baho)", styles["heading"]))
+    story.append(Paragraph("2. PlagAI ichki hujjatlar bazasi", styles["heading"]))
+    internal_sources = multi_source_result.internal_sources or []
+    story.append(Paragraph(f"PlagAI ichki hujjatlar bazasida {len(internal_sources)} ta manba va {sum(len(source.matches) for source in internal_sources)} ta mos fragment qaytdi. Ichki baza o‘xshashligi: <b>{multi_source_result.internal_similarity:.2f}%</b>.", styles["body"]))
+    if internal_sources:
+        internal_rows: list[list[object]] = [[Paragraph("№", styles["table_bold"]), Paragraph("ICHKI MANBA", styles["table_bold"]), Paragraph("MOSLIK", styles["table_bold"]), Paragraph("MOS FRAGMENT", styles["table_bold"])]]
+        for number, source in enumerate(internal_sources, start=1):
+            matches = source.matches or []
+            for fragment_number, match in enumerate(matches, start=1):
+                internal_rows.append([
+                    Paragraph(str(number) if fragment_number == 1 else "", styles["table"]),
+                    Paragraph(escape(source.label) if fragment_number == 1 else f"(Fragment {fragment_number})", styles["table"]),
+                    Paragraph(f"{source.matched_words} so‘z<br/><b>{source.similarity:.2f}%</b>" if fragment_number == 1 else "Fragment davomida", styles["table"]),
+                    Paragraph(escape(match.text[:MAX_TABLE_FRAGMENT_CHARS]) if match.text else "-", styles["table"]),
+                ])
+        if len(internal_rows) > 1:
+            internal_table = LongTable(internal_rows, colWidths=[8 * mm, 69 * mm, 23 * mm, 74 * mm], repeatRows=1)
+            internal_table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), PALE_TURQUOISE), ("BOX", (0, 0), (-1, -1), 0.5, BORDER), ("INNERGRID", (0, 0), (-1, -1), 0.3, BORDER), ("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 5), ("RIGHTPADDING", (0, 0), (-1, -1), 5), ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
+            story.append(internal_table)
+    else:
+        story.append(Paragraph("Ichki bazada mos fragment topilmadi. Bu natija avval yuklangan hujjatlar doirasidagi tekshiruvni bildiradi.", styles["body"]))
+    story.append(Paragraph("3. AI yordamida yozilgan matn indikatori", styles["heading"]))
     if ai_assessment is None:
-        story.append(Paragraph("AI tahlili ushbu tekshiruvda bajarilmadi. Plagiat natijasi AI tahlili o‘rnini bosmaydi.", styles["body"]))
+        story.append(Paragraph("AI tahlili ushbu tekshiruvda bajarilmadi. Plagiat natijasi AI tahlilining o‘rnini bosmaydi.", styles["body"]))
     else:
         ai_score_text = "Foiz mavjud emas" if ai_assessment.score is None else f"{ai_assessment.score:.2f}%"
         ai_table = Table([[Paragraph("PROVAYDER", styles["small"]), Paragraph(escape(ai_assessment.provider), styles["table_bold"])], [Paragraph("NATIJA", styles["small"]), Paragraph(escape(ai_score_text), styles["table_bold"])], [Paragraph("ISHONCH", styles["small"]), Paragraph(escape(ai_assessment.confidence), styles["table"])], [Paragraph("TALQIN", styles["small"]), Paragraph(escape(ai_assessment.verdict), styles["table"]) ]], colWidths=[32 * mm, 142 * mm])
@@ -247,9 +273,6 @@ def build_report(filename: str, word_count: int, checked_at: datetime | None = N
         story.append(ai_table)
         for reason in ai_assessment.reasons[:6]: story.append(Paragraph(f"• {escape(reason)}", styles["body"]))
         story.append(Paragraph(f"<i>{escape(ai_assessment.disclaimer)}</i>", styles["small"]))
-    story.append(Paragraph("3. Natijani to‘g‘ri talqin qilish", styles["heading"]))
-    for line in ["O‘xshashlik foizi — tekshiruv qamrab olgan manbalardan topilgan moslik ulushi; u avtomatik plagiat hukmi emas.", "Ochiq manba topilmagani — yopiq bazalar, chop etilmagan ishlar yoki indekslanmagan sahifalar tekshirilmagan bo‘lishi mumkinligini anglatadi.", "AI indikatori uslubiy-statistik baho bo‘lib, mualliflikni isbotlamaydi; yakuniy qaror inson eksperti tomonidan beriladi."]:
-        story.append(Paragraph(f"• {escape(line)}", styles["body"]))
     story.append(Paragraph("4. Ekspert tavsiyalari", styles["heading"]))
     for number, recommendation in enumerate(conclusion.recommendations, start=1): story.append(Paragraph(f"<b>{number}.</b> {escape(recommendation)}", styles["body"]))
     if authorship_questions:
