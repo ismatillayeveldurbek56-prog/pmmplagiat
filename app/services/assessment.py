@@ -35,24 +35,42 @@ def build_professional_conclusion(
 
     score = internet.similarity if overall_similarity is None else overall_similarity
     level, interpretation = _similarity_level(score)
-    recommendations = [
-        "Mos qismlarni asl manbalar bilan solishtiring va zarur joylarda havola kiriting."
-    ]
-    if internet.similarity >= 10:
-        recommendations.insert(0, "Eng katta moslik bergan manbalardan boshlab tahrir qiling.")
-    if ai and ai.score is not None and ai.score >= 20:
-        recommendations.append(
-            "AI ko‘rsatkichini yakka dalil sifatida ishlatmang; mualliflik savollarini bering."
+    if not internet.sources and score <= 0:
+        headline = "Ochiq internet manbalarida moslik topilmadi"
+        conclusion = (
+            "Quetext DeepSearch yakuniy tekshiruvda ochiq internet va akademik veb "
+            "manbalaridan mos fragment qaytarmadi. Bu natija ushbu xizmat qamrab olgan "
+            "manbalarda moslik aniqlanmaganini bildiradi; barcha mavjud nashrlar yoki "
+            "ichki hujjatlar tekshirilganini anglatmaydi."
         )
-    recommendations.append("Yakuniy akademik qarorni inson eksperti qabul qilishi kerak.")
+        recommendations = [
+            "Manba ro‘yxati, iqtiboslar va mualliflik hujjatlarini inson eksperti bilan tekshiring.",
+            "Zarur bo‘lsa, yopiq tashkilot bazasi yoki soha bo‘yicha maxsus manbalar bilan qo‘shimcha tekshiruv o‘tkazing.",
+            "AI indikatori bo‘lsa, uni yakka dalil yoki plagiat hukmi sifatida ishlatmang.",
+            "Yakuniy akademik qarorni inson eksperti qabul qilishi kerak.",
+        ]
+    else:
+        headline = f"Umumiy o‘xshashlik darajasi: {level}"
+        conclusion = (
+            f"Internet va akademik veb manbalar bo‘yicha tekshiruv yakunlandi. "
+            f"Umumiy o‘xshashlik {score:.2f}% bo‘ldi. {interpretation}"
+        )
+        recommendations = [
+            "Mos qismlarni asl manbalar bilan solishtiring va zarur joylarda havola kiriting."
+        ]
+        if internet.similarity >= 10:
+            recommendations.insert(0, "Eng katta moslik bergan manbalardan boshlab tahrir qiling.")
+        if ai and ai.score is not None and ai.score >= 20:
+            recommendations.append(
+                "AI ko‘rsatkichini yakka dalil sifatida ishlatmang; mualliflik savollarini bering."
+            )
+        recommendations.append("Yakuniy akademik qarorni inson eksperti qabul qilishi kerak.")
+
     return ProfessionalConclusion(
         status="verified",
         status_label="TEKSHIRUV YAKUNLANDI",
-        headline=f"Umumiy o‘xshashlik darajasi: {level}",
-        conclusion=(
-            f"Internet va akademik veb manbalar bo‘yicha tekshiruv yakunlandi. "
-            f"Umumiy o‘xshashlik {score:.2f}% bo‘ldi. {interpretation}"
-        ),
+        headline=headline,
+        conclusion=conclusion,
         evidence_level="Quetext DeepSearch dalillari",
         recommendations=recommendations[:4],
     )
