@@ -25,7 +25,7 @@ from app.branding import BRAND_NAME, BRAND_TAGLINE, brand_logo_bytes
 from app.services.ai_risk import AIStyleAssessment, language_name
 from app.services.assessment import build_professional_conclusion
 from app.services.internal_similarity import MultiSourceResult
-from app.services.quetext import InternetScanResult
+from app.services.quetext import InternetScanResult, InternetSource
 from app.services.unicode_safety import html_fragment_to_text
 
 NAVY = colors.HexColor("#123B5D")
@@ -135,6 +135,25 @@ def _split_table_fragment(text: str, limit: int = MAX_TABLE_FRAGMENT_CHARS) -> l
     return chunks
 
 
+def _source_key(source: InternetSource) -> str:
+    url = (source.url or "").strip().rstrip("/").casefold()
+    if url:
+        return url
+    return f"title:{(source.title or '').strip().casefold()}"
+
+
+def _group_sources(sources: list[InternetSource]) -> list[list[InternetSource]]:
+    groups: dict[str, list[InternetSource]] = {}
+    ordered: list[list[InternetSource]] = []
+    for source in sources:
+        key = _source_key(source)
+        if key not in groups:
+            groups[key] = []
+            ordered.append(groups[key])
+        groups[key].append(source)
+    return ordered
+
+
 def _draw_step_motif(canvas, x: float, y: float, size: float) -> None:
     canvas.saveState(); canvas.translate(x, y); canvas.setStrokeColor(TURQUOISE); canvas.setLineWidth(0.35)
     upper = canvas.beginPath(); upper.moveTo(-size, 0); upper.lineTo(-size * 0.5, size * 0.34); upper.lineTo(0, 0); upper.lineTo(size * 0.5, size * 0.34); upper.lineTo(size, 0); canvas.drawPath(upper, stroke=1, fill=0)
@@ -167,6 +186,9 @@ def build_report(filename: str, word_count: int, checked_at: datetime | None = N
         multi_source_result = MultiSourceResult(internet_similarity=similarity, internal_similarity=0.0, combined_similarity=similarity, combined_originality=float(internet_result.originality), internet_matched_words=round(word_count * similarity / 100.0), internal_matched_words=0, deduplicated_matched_words=round(word_count * similarity / 100.0), total_words=word_count, internal_sources=[])
     regular, bold, display = _fonts(); styles = _styles(regular, bold, display)
     conclusion = build_professional_conclusion(internet_result, ai_assessment, overall_similarity=multi_source_result.combined_similarity)
+    source_groups = _group_sources(internet_result.sources)
+    unique_source_count = len(source_groups)
+    fragment_count = len(internet_result.sources)
     report_id = _report_id(filename, checked_at); buffer = BytesIO()
     document = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=18 * mm, leftMargin=18 * mm, topMargin=25 * mm, bottomMargin=16 * mm, title=f"{BRAND_NAME} tekshiruv hisoboti — {filename}", author=BRAND_NAME, subject="Internet va akademik manbalar bo‘yicha o‘xshashlik hisoboti")
     detected_language = ai_assessment.language if ai_assessment else "unknown"; scan_mode = "QUETEXT DEEPSEARCH"
@@ -189,18 +211,26 @@ def build_report(filename: str, word_count: int, checked_at: datetime | None = N
         _metric_card(f"{multi_source_result.internet_similarity:.2f}%", "INTERNET / AKADEMIK", styles, PAPER, card_width),
     ]
     metrics = Table([metric_cards], colWidths=[58 * mm] * 3); metrics.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 1 * mm), ("RIGHTPADDING", (0, 0), (-1, -1), 1 * mm), ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
-    story.extend([metrics, Paragraph(f"AI indikatori: <b>{escape(ai_value)}</b>", styles["small"]), Paragraph("1. Internet manbalari bo‘yicha natija", styles["heading"]), Paragraph(f"Quetext DeepSearch tashqi skani yakunlandi. {len(internet_result.sources)} ta ochiq manba qaytdi. Dalil darajasi: <b>{escape(conclusion.evidence_level)}</b>.", styles["body"])])
+    score_note = ""
+    if abs(multi_source_result.internet_similarity - multi_source_result.combined_similarity) >= 0.01:
+        score_note = " Internet/akademik ko‘rsatkichi provayder skori, umumiy o‘xshashlik esa birlashtirilgan dalillar asosida hisoblanadi; shu sababli ular biroz farq qilishi mumkin."
+    story.extend([metrics, Paragraph(f"AI indikatori: <b>{escape(ai_value)}</b>", styles["small"]), Paragraph("* Aniqlangan originallik — tekshirilgan manbalar doirasida o‘xshashlik aniqlanmagan matematik ulush (100% − o‘xshashlik). Bu mutlaq plagiatsiz yoki mualliflik hukmi emas.", styles["small"]), Paragraph("1. Internet manbalari bo‘yicha natija", styles["heading"]), Paragraph(f"Quetext DeepSearch tashqi skani yakunlandi. {unique_source_count} ta noyob ochiq sahifa va {fragment_count} ta mos fragment qaytdi. Dalil darajasi: <b>{escape(conclusion.evidence_level)}</b>.{escape(score_note)}", styles["body"])])
     if internet_result.sources:
         source_rows: list[list[object]] = [[Paragraph("№", styles["table_bold"]), Paragraph("INTERNET MANBASI", styles["table_bold"]), Paragraph("MOSLIK", styles["table_bold"]), Paragraph("MOS FRAGMENT", styles["table_bold"])]]
-        for number, source in enumerate(internet_result.sources, start=1):
-            title = escape(source.title)
-            if source.url:
-                title = f"<link href={quoteattr(source.url)} color='#2563EB'>{title}</link><br/><font size='6' color='#64748B'>{escape(source.url[:140])}</font>"
-            similarity_text = f"{source.matched_words} so‘z" + (f"<br/><b>{source.similarity:.2f}%</b>" if source.similarity is not None else "")
-            snippet_chunks = _split_table_fragment(html_fragment_to_text(source.introduction or ""))
-            for chunk_number, snippet in enumerate(snippet_chunks, start=1):
-                first_chunk = chunk_number == 1; source_cell = title if first_chunk else f"(davomi {chunk_number}/{len(snippet_chunks)})"
-                source_rows.append([Paragraph(str(number) if first_chunk else "", styles["table"]), Paragraph(source_cell, styles["table"]), Paragraph(similarity_text if first_chunk else "", styles["table"]), Paragraph(escape(snippet), styles["table"])])
+        for number, group in enumerate(source_groups, start=1):
+            primary = group[0]
+            title = escape(primary.title)
+            if primary.url:
+                title = f"<link href={quoteattr(primary.url)} color='#2563EB'>{title}</link><br/><font size='6' color='#64748B'>{escape(primary.url[:140])}</font>"
+            for fragment_number, source in enumerate(group, start=1):
+                similarity_text = f"Fragment {fragment_number}<br/>{source.matched_words} so‘z" + (f"<br/><b>{source.similarity:.2f}%</b>" if source.similarity is not None else "")
+                snippet_chunks = _split_table_fragment(html_fragment_to_text(source.introduction or source.matched_text or ""))
+                for chunk_number, snippet in enumerate(snippet_chunks, start=1):
+                    first_chunk = chunk_number == 1
+                    source_cell = title if fragment_number == 1 and first_chunk else f"(Fragment {fragment_number})"
+                    if not first_chunk:
+                        source_cell = f"(Fragment {fragment_number}, davomi {chunk_number}/{len(snippet_chunks)})"
+                    source_rows.append([Paragraph(str(number) if fragment_number == 1 and first_chunk else "", styles["table"]), Paragraph(source_cell, styles["table"]), Paragraph(similarity_text if first_chunk else f"Fragment {fragment_number}<br/>(davomi)", styles["table"]), Paragraph(escape(snippet), styles["table"])])
         source_table = LongTable(source_rows, colWidths=[8 * mm, 69 * mm, 23 * mm, 74 * mm], repeatRows=1)
         source_table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), PALE_TURQUOISE), ("TEXTCOLOR", (0, 0), (-1, 0), NAVY), ("BOX", (0, 0), (-1, -1), 0.5, BORDER), ("INNERGRID", (0, 0), (-1, -1), 0.3, BORDER), ("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 5), ("RIGHTPADDING", (0, 0), (-1, -1), 5), ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
         for row in range(2, len(source_rows), 2): source_table.setStyle(TableStyle([("BACKGROUND", (0, row), (-1, row), PALE_GOLD)]))
